@@ -136,7 +136,7 @@ const coderAgentCard: schema.AgentCard = {
   name: "Coder Agent",
   description:
     "An agent that generates code based on natural language instructions and streams file outputs.",
-  url: "http://localhost:41241", // Default port used in the script
+  url: "http://localhost:41242", // Changed from 41241 to 41242
   provider: {
     organization: "A2A Samples",
   },
@@ -174,7 +174,7 @@ const server = new A2AServer(coderAgent, {
   card: coderAgentCard,
 });
 
-server.start(); // Default port 41241
+server.start(41242); // Changed from default 41241 to 41242
 
-console.log("[CoderAgent] Server started on http://localhost:41241");
+console.log("[CoderAgent] Server started on http://localhost:41242");
 console.log("[CoderAgent] Press Ctrl+C to stop the server");

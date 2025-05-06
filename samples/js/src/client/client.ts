@@ -121,10 +121,9 @@ export class A2AClient {
       // Wrap network errors into a standard error format if possible
       throw new RpcError(
         -32603, // Use literal value for ErrorCodeInternalError
-        `Network error: ${
-          networkError instanceof Error
-            ? networkError.message
-            : String(networkError)
+        `Network error: ${networkError instanceof Error
+          ? networkError.message
+          : String(networkError)
         }`,
         networkError // Include original error if needed
       );
@@ -162,8 +161,7 @@ export class A2AClient {
         }
         // If not a JSON RPC error, throw generic HTTP error
         throw new Error(
-          `HTTP error ${response.status}: ${response.statusText}${
-            responseBody ? ` - ${responseBody}` : ""
+          `HTTP error ${response.status}: ${response.statusText}${responseBody ? ` - ${responseBody}` : ""
           }`
         );
       }
@@ -200,8 +198,7 @@ export class A2AClient {
       return jsonResponse.result;
     } catch (error) {
       console.error(
-        `Error processing RPC response for method ${
-          expectedMethod || "unknown"
+        `Error processing RPC response for method ${expectedMethod || "unknown"
         }:`,
         error,
         responseBody ? `\nResponse Body: ${responseBody}` : ""
@@ -212,8 +209,7 @@ export class A2AClient {
       } else {
         throw new RpcError(
           -32603, // Use literal value for ErrorCodeInternalError
-          `Failed to process response: ${
-            error instanceof Error ? error.message : String(error)
+          `Failed to process response: ${error instanceof Error ? error.message : String(error)
           }`,
           error
         );
@@ -239,8 +235,7 @@ export class A2AClient {
         /* Ignore read error */
       }
       console.error(
-        `HTTP error ${response.status} received for streaming method ${
-          expectedMethod || "unknown"
+        `HTTP error ${response.status} received for streaming method ${expectedMethod || "unknown"
         }.`,
         errorText ? `Response: ${errorText}` : ""
       );
@@ -359,7 +354,7 @@ export class A2AClient {
 
     // Assumption: Server exposes the card at a simple GET endpoint.
     // Adjust this URL/method if the server provides the card differently.
-    const cardUrl = `${this.baseUrl}/agent-card`; // Or just this.baseUrl if served at root
+    const cardUrl = `${this.baseUrl}/.well-known/agent.json`; // Or just this.baseUrl if served at root
 
     try {
       const response = await this.fetchImpl(cardUrl, {
@@ -383,8 +378,7 @@ export class A2AClient {
       console.error("Failed to fetch or parse agent card:", error);
       throw new RpcError(
         -32603, // Use literal value for ErrorCodeInternalError
-        `Could not retrieve agent card: ${
-          error instanceof Error ? error.message : String(error)
+        `Could not retrieve agent card: ${error instanceof Error ? error.message : String(error)
         }`,
         error
       );

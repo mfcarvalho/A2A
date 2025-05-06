@@ -58,7 +58,9 @@ function printAgentEvent(
   event: TaskStatusUpdateEvent | TaskArtifactUpdateEvent
 ) {
   const timestamp = new Date().toLocaleTimeString();
-  const prefix = colorize("magenta", `\n${agentName} [${timestamp}]:`);
+  // Add task ID to all agent responses
+  const taskId = "id" in event ? event.id : "unknown";
+  const prefix = colorize("magenta", `\n${agentName} [${timestamp}] [Task ID: ${taskId}]:`);
 
   // Check if it's a TaskStatusUpdateEvent
   if ("status" in event) {
@@ -102,8 +104,7 @@ function printAgentEvent(
   else if ("artifact" in event) {
     const update = event as TaskArtifactUpdateEvent; // Cast for type safety
     console.log(
-      `${prefix} 📄 Artifact Received: ${
-        update.artifact.name || "(unnamed)"
+      `${prefix} 📄 Artifact Received: ${update.artifact.name || "(unnamed)"
       } (Index: ${update.artifact.index ?? 0})`
     );
     printMessageContent({ role: "agent", parts: update.artifact.parts }); // Reuse message printing logic
@@ -125,10 +126,8 @@ function printMessageContent(message: Message) {
     } else if ("file" in part) {
       const filePart = part as FilePart;
       console.log(
-        `${partPrefix} ${colorize("blue", "📄 File:")} Name: ${
-          filePart.file.name || "N/A"
-        }, Type: ${filePart.file.mimeType || "N/A"}, Source: ${
-          filePart.file.bytes ? "Inline (bytes)" : filePart.file.uri
+        `${partPrefix} ${colorize("blue", "📄 File:")} Name: ${filePart.file.name || "N/A"
+        }, Type: ${filePart.file.mimeType || "N/A"}, Source: ${filePart.file.bytes ? "Inline (bytes)" : filePart.file.uri
         }`
       );
       // Avoid printing large byte strings
@@ -211,10 +210,13 @@ async function main() {
       return;
     }
 
+    // Store current task id in case we need it for follow-up inputs
+    const taskIdForInput = currentTaskId;
+
     // Construct just the params for the request
     const params: TaskSendParams = {
       // Use the specific Params type
-      id: currentTaskId, // The actual Task ID
+      id: taskIdForInput, // The actual Task ID
       message: {
         role: "user",
         parts: [{ type: "text", text: input }], // Ensure type: "text" is included if your schema needs it
@@ -225,12 +227,36 @@ async function main() {
       console.log(colorize("gray", "Sending...")); // Indicate request is sent
       // Pass only the params object to the client method
       const stream = client.sendTaskSubscribe(params);
+
+      // Track if we receive input-required status
+      let inputRequired = false;
+      let inputRequiredMessage = "";
+
       // Iterate over the unwrapped event payloads
       for await (const event of stream) {
         printAgentEvent(event); // Use the updated handler function
+
+        // Check if this is an input-required status
+        if ('status' in event &&
+          event.status.state === 'input-required' &&
+          event.status.message?.parts[0]) {
+          const part = event.status.message.parts[0];
+          inputRequired = true;
+          // Use type guard to check if this is a TextPart before accessing text property
+          inputRequiredMessage = 'text' in part ? part.text :
+            "The agent is waiting for additional input from you.";
+        }
       }
+
       // Add a small visual cue that the stream for *this* message ended
       console.log(colorize("dim", `--- End of response for this input ---`));
+
+      // If input is required, prompt the user specifically
+      if (inputRequired) {
+        console.log(colorize("yellow", `\n🤔 ${inputRequiredMessage}`));
+        console.log(colorize("bright", `Please provide the requested information (using the same task ID: ${taskIdForInput}):`));
+      }
+
     } catch (error: any) {
       console.error(
         colorize("red", `\n❌ Error communicating with agent (${agentName}):`),
